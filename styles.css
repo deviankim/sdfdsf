@@ -88,13 +88,31 @@ select { min-height: 44px; border: 1px solid var(--line); border-radius: 10px; b
 .track-panel { margin-top: 18px; padding: 20px; }
 .track-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 15px; }
 .track-head p { margin: 0; color: var(--muted); }
+.track-tools { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.sound-btn { min-height: 38px; border: 1px solid var(--line); border-radius: 10px; padding: 0 11px; background: #171e29; color: var(--text); font-weight: 800; font-size: .78rem; }
+.sound-btn[aria-pressed="false"] { color: var(--muted); }
 .track { overflow: hidden; border: 1px solid #64452f; border-radius: 14px; background: var(--track); }
 .lane { position: relative; height: 50px; border-bottom: 1px dashed rgba(255,255,255,.28); }
 .lane:last-child { border-bottom: 0; }
 .lane::before { content: attr(data-gate); position: absolute; left: 8px; top: 50%; transform: translateY(-50%); z-index: 2; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 8px; background: rgba(8,11,16,.64); color: #fff; font-size: .72rem; font-weight: 900; }
 .lane::after { content: ""; position: absolute; right: 44px; top: 0; bottom: 0; width: 3px; background: repeating-linear-gradient(#fff 0 6px, #171717 6px 12px); opacity: .9; }
-.runner { position: absolute; left: 38px; top: 50%; width: 36px; transform: translate(0,-50%); transition: transform .11s linear; font-size: 27px; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
-.runner b { position: absolute; left: 29px; top: 5px; min-width: 22px; height: 18px; display: grid; place-items: center; border-radius: 8px; background: rgba(8,11,16,.76); color: #fff; font: 800 10px/1 system-ui, sans-serif; }
+.runner { position: absolute; left: 38px; top: 50%; width: 49px; height: 34px; transform: translate(0,-50%); transition: transform .11s linear; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+.horse-motion { position: absolute; inset: 1px auto auto 3px; display: inline-block; transform-origin: 45% 75%; }
+.horse-sprite { display: inline-block; font-size: 28px; line-height: 1; transform: scaleX(-1); }
+.dust { position: absolute; left: -7px; top: 18px; color: rgba(245, 225, 194, .78); font: 900 13px/1 monospace; letter-spacing: -4px; opacity: 0; }
+.track.racing .horse-motion { animation: gallop-bob var(--gallop, .21s) ease-in-out var(--delay, 0s) infinite; }
+.track.racing .dust { animation: dust-kick calc(var(--gallop, .21s) * 2) ease-out var(--delay, 0s) infinite; }
+.runner b { position: absolute; left: 32px; top: 7px; z-index: 2; min-width: 22px; height: 18px; display: grid; place-items: center; border-radius: 8px; background: rgba(8,11,16,.76); color: #fff; font: 800 10px/1 system-ui, sans-serif; }
+@keyframes gallop-bob {
+  0%, 100% { transform: translateY(1px) rotate(2deg) scale(1, .97); }
+  35% { transform: translateY(-4px) rotate(-4deg) scale(1.04, 1.02); }
+  65% { transform: translateY(-1px) rotate(3deg) scale(.99, .98); }
+}
+@keyframes dust-kick {
+  0% { opacity: 0; transform: translate(7px, 1px) scale(.7); }
+  25% { opacity: .75; }
+  100% { opacity: 0; transform: translate(-10px, -4px) scale(1.35); }
+}
 
 .result { margin-top: 18px; padding: 22px; }
 .podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0 12px; }
@@ -122,7 +140,9 @@ footer { padding: 28px 4px 0; color: #718095; font-size: .76rem; line-height: 1.
   .bet { align-items: stretch; flex-direction: column; }
   .bet-controls { display: grid; grid-template-columns: 1fr 1fr; }
   .track-panel { padding: 14px; }
-  .runner { font-size: 24px; }
+  .track-head { align-items: flex-start; }
+  .track-tools { align-items: flex-end; flex-direction: column; }
+  .horse-sprite { font-size: 25px; }
   .podium { grid-template-columns: 1fr; }
 }
 

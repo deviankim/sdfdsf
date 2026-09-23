@@ -20,7 +20,8 @@
     coins: $('coins'), conditions: $('conditions'), horseCards: $('horseCards'), briefing: $('briefing'),
     newRaceBtn: $('newRaceBtn'), startBtn: $('startBtn'), stakeSelect: $('stakeSelect'), track: $('track'),
     raceStatus: $('raceStatus'), resultPanel: $('resultPanel'), resultTitle: $('resultTitle'),
-    resultMessage: $('resultMessage'), podium: $('podium'), nextBtn: $('nextBtn'), raceTitle: $('raceTitle')
+    resultMessage: $('resultMessage'), podium: $('podium'), nextBtn: $('nextBtn'), raceTitle: $('raceTitle'),
+    soundBtn: $('soundBtn')
   };
 
   const state = {
@@ -31,7 +32,15 @@
     distance: 1400,
     track: TRACKS[1],
     racing: false,
-    animation: null
+    animation: null,
+    audio: {
+      ctx: null,
+      hoofTimer: null,
+      crowdSource: null,
+      crowdGain: null,
+      soundEnabled: true,
+      excited: false
+    }
   };
 
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
@@ -44,6 +53,119 @@
     while (!v) v = Math.random();
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
   };
+
+  function updateSoundButton() {
+    els.soundBtn.textContent = state.audio.soundEnabled ? '🔊 사운드 켬' : '🔇 사운드 끔';
+    els.soundBtn.setAttribute('aria-pressed', String(state.audio.soundEnabled));
+  }
+
+  function ensureAudio() {
+    if (!state.audio.soundEnabled) return null;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      state.audio.soundEnabled = false;
+      updateSoundButton();
+      return null;
+    }
+    if (!state.audio.ctx) state.audio.ctx = new AudioContextClass();
+    if (state.audio.ctx.state === 'suspended') state.audio.ctx.resume();
+    return state.audio.ctx;
+  }
+
+  function hoofBeat() {
+    const ctx = state.audio.ctx;
+    if (!ctx || !state.audio.soundEnabled || !state.racing) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(105 + Math.random() * 30, now);
+    osc.frequency.exponentialRampToValueAtTime(42, now + .075);
+    gain.gain.setValueAtTime(.0001, now);
+    gain.gain.exponentialRampToValueAtTime(.055, now + .006);
+    gain.gain.exponentialRampToValueAtTime(.0001, now + .095);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + .1);
+  }
+
+  function createCrowdNoise(ctx, duration = 2.2) {
+    const length = Math.max(1, Math.floor(ctx.sampleRate * duration));
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let smooth = 0;
+    for (let i = 0; i < length; i++) {
+      smooth = smooth * .91 + (Math.random() * 2 - 1) * .09;
+      data[i] = smooth;
+    }
+    return buffer;
+  }
+
+  function startRaceAudio() {
+    const ctx = ensureAudio();
+    if (!ctx || state.audio.hoofTimer) return;
+    state.audio.excited = false;
+
+    const source = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+    source.buffer = createCrowdNoise(ctx);
+    source.loop = true;
+    filter.type = 'bandpass';
+    filter.frequency.value = 850;
+    filter.Q.value = .65;
+    gain.gain.value = .018;
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    source.start();
+
+    state.audio.crowdSource = source;
+    state.audio.crowdGain = gain;
+    hoofBeat();
+    state.audio.hoofTimer = window.setInterval(hoofBeat, 145);
+  }
+
+  function boostCrowd() {
+    if (state.audio.excited || !state.audio.crowdGain || !state.audio.ctx) return;
+    state.audio.excited = true;
+    state.audio.crowdGain.gain.setTargetAtTime(.052, state.audio.ctx.currentTime, .35);
+  }
+
+  function stopRaceAudio() {
+    if (state.audio.hoofTimer) {
+      clearInterval(state.audio.hoofTimer);
+      state.audio.hoofTimer = null;
+    }
+    if (state.audio.crowdSource) {
+      try { state.audio.crowdSource.stop(); } catch (_) {}
+      state.audio.crowdSource = null;
+      state.audio.crowdGain = null;
+    }
+  }
+
+  function playCheer() {
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const source = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+    const now = ctx.currentTime;
+    source.buffer = createCrowdNoise(ctx, 1.8);
+    filter.type = 'bandpass';
+    filter.frequency.value = 1200;
+    filter.Q.value = .5;
+    gain.gain.setValueAtTime(.0001, now);
+    gain.gain.exponentialRampToValueAtTime(.11, now + .12);
+    gain.gain.setValueAtTime(.09, now + .85);
+    gain.gain.exponentialRampToValueAtTime(.0001, now + 1.75);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    source.start(now);
+    source.stop(now + 1.8);
+  }
 
   function buildHorse(name, gate) {
     const style = STYLES[randint(0, STYLES.length - 1)];
@@ -185,10 +307,17 @@
   }
 
   function renderTrack() {
-    els.track.innerHTML = state.horses.map(h => `
+    els.track.innerHTML = state.horses.map(h => {
+      const gallop = clamp(.31 - h.speed * .00135, .17, .24).toFixed(3);
+      return `
       <div class="lane" data-gate="${h.gate}">
-        <div class="runner" id="runner-${h.gate}" aria-label="${h.name}">🐎<b>${h.gate}</b></div>
-      </div>`).join('');
+        <div class="runner" id="runner-${h.gate}" aria-label="${h.name}" style="--gallop:${gallop}s;--delay:-${(h.gate * .037).toFixed(3)}s">
+          <span class="dust" aria-hidden="true">••</span>
+          <span class="horse-motion" aria-hidden="true"><span class="horse-sprite">🐎</span></span>
+          <b>${h.gate}</b>
+        </div>
+      </div>`;
+    }).join('');
   }
 
   function selectHorse(id) {
@@ -214,6 +343,8 @@
     els.startBtn.textContent = '말을 선택하세요';
     els.newRaceBtn.disabled = false;
     els.raceStatus.textContent = '출발 준비 중';
+    els.track.classList.remove('racing');
+    stopRaceAudio();
     renderConditions();
     renderCards();
     renderTrack();
@@ -295,6 +426,8 @@
     els.stakeSelect.disabled = true;
     els.resultPanel.hidden = true;
     els.raceStatus.textContent = '출발했습니다!';
+    els.track.classList.add('racing');
+    startRaceAudio();
     let prev = performance.now();
 
     const tick = (now) => {
@@ -303,7 +436,10 @@
       updateRaceFrame(dt);
       const finished = state.horses.filter(h => h.finishTime).length;
       const leader = [...state.horses].sort((a, b) => b.progress - a.progress)[0];
-      if (finished === 0 && leader.progress > .72) els.raceStatus.textContent = `직선 진입! ${leader.name} 선두`;
+      if (finished === 0 && leader.progress > .72) {
+        els.raceStatus.textContent = `직선 진입! ${leader.name} 선두`;
+        boostCrowd();
+      }
       if (finished < state.horses.length) {
         state.animation = requestAnimationFrame(tick);
       } else {
@@ -315,6 +451,9 @@
 
   function finishRace(stake) {
     state.racing = false;
+    els.track.classList.remove('racing');
+    stopRaceAudio();
+    playCheer();
     els.stakeSelect.disabled = false;
     const order = [...state.horses].sort((a, b) => a.finishTime - b.finishTime);
     const winner = order[0];
@@ -349,11 +488,23 @@
   els.newRaceBtn.addEventListener('click', () => newRace());
   els.nextBtn.addEventListener('click', () => newRace({ advance: true }));
   els.startBtn.addEventListener('click', runRace);
+  els.soundBtn.addEventListener('click', () => {
+    state.audio.soundEnabled = !state.audio.soundEnabled;
+    updateSoundButton();
+    if (!state.audio.soundEnabled) {
+      stopRaceAudio();
+    } else if (state.racing) {
+      startRaceAudio();
+    } else {
+      ensureAudio();
+    }
+  });
   els.stakeSelect.addEventListener('change', () => {
     const stake = Number(els.stakeSelect.value);
     if (stake > state.coins) els.raceStatus.textContent = '현재 코인보다 큰 금액입니다.';
   });
 
   updateCoins();
+  updateSoundButton();
   newRace();
 })();
