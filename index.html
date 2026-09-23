@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#111827" />
+  <meta name="description" content="말의 능력치를 읽고 이변까지 감안해 우승마를 예측하는 브라우저 경마 게임" />
+  <title>라스트 펄롱 — 예측 경마</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">PREDICT · PICK · RACE</p>
+        <h1>라스트 펄롱</h1>
+        <p class="lead">능력치를 읽으면 유리하지만, 경주는 언제나 변수가 있습니다.</p>
+      </div>
+      <div class="wallet" aria-label="보유 코인">
+        <span>보유 코인</span>
+        <strong id="coins">1,000</strong>
+      </div>
+    </header>
+
+    <section class="race-meta panel" aria-labelledby="raceTitle">
+      <div>
+        <span class="kicker">오늘의 레이스</span>
+        <h2 id="raceTitle">제1경주</h2>
+      </div>
+      <div class="conditions" id="conditions" aria-live="polite"></div>
+      <button id="newRaceBtn" class="ghost" type="button">새 편성</button>
+    </section>
+
+    <section class="insight panel" aria-labelledby="insightTitle">
+      <div>
+        <span class="kicker">예측 브리핑</span>
+        <h2 id="insightTitle">데이터가 말하는 유력마</h2>
+      </div>
+      <p id="briefing">편성을 분석 중입니다.</p>
+      <div class="legend">
+        <span><i class="dot reliable"></i>높은 수치는 유리</span>
+        <span><i class="dot chaos"></i>컨디션·전개·돌발 변수 존재</span>
+      </div>
+    </section>
+
+    <section aria-labelledby="fieldTitle">
+      <div class="section-head">
+        <div>
+          <span class="kicker">출전마 6두</span>
+          <h2 id="fieldTitle">출전표</h2>
+        </div>
+        <p>예상 승률은 현재 코스 조건을 반영한 시뮬레이션 값입니다.</p>
+      </div>
+      <div id="horseCards" class="horse-grid"></div>
+    </section>
+
+    <section class="bet panel" aria-labelledby="pickTitle">
+      <div class="bet-copy">
+        <span class="kicker">단승 예측</span>
+        <h2 id="pickTitle">우승마를 선택하세요</h2>
+        <p>가상 코인만 사용합니다. 적중 시 표시 배당만큼 코인을 획득합니다.</p>
+      </div>
+      <div class="bet-controls">
+        <label>
+          예측 금액
+          <select id="stakeSelect">
+            <option value="50">50 코인</option>
+            <option value="100" selected>100 코인</option>
+            <option value="200">200 코인</option>
+            <option value="300">300 코인</option>
+          </select>
+        </label>
+        <button id="startBtn" class="primary" type="button" disabled>말을 선택하세요</button>
+      </div>
+    </section>
+
+    <section id="trackSection" class="track-panel panel" aria-labelledby="trackTitle">
+      <div class="track-head">
+        <div>
+          <span class="kicker">LIVE</span>
+          <h2 id="trackTitle">레이스 중계</h2>
+        </div>
+        <p id="raceStatus" aria-live="polite">출발 준비 중</p>
+      </div>
+      <div id="track" class="track" aria-label="경마 트랙"></div>
+    </section>
+
+    <section id="resultPanel" class="result panel" aria-live="polite" hidden>
+      <div>
+        <span class="kicker">RESULT</span>
+        <h2 id="resultTitle">경기 결과</h2>
+      </div>
+      <div id="podium" class="podium"></div>
+      <p id="resultMessage"></p>
+      <button id="nextBtn" class="primary" type="button">다음 레이스</button>
+    </section>
+
+    <footer>
+      <p>전력 지수는 속도·지구력·출발·막판·안정성·코스 궁합을 조합한 참고 지표입니다. 실제 결과에는 구간별 랜덤 변수가 적용됩니다.</p>
+    </footer>
+  </main>
+  <script src="app.js" defer></script>
+</body>
+</html>
