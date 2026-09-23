@@ -246,7 +246,7 @@
 
   function maybeIncident(horse, elapsed) {
     if (horse.incident || elapsed < .12 || elapsed > .88) return 0;
-    const chance = .0017 * state.track.chaos;
+    const chance = .00065 * state.track.chaos;
     if (Math.random() < chance) {
       const incidents = [
         { text: '진로가 잠깐 막혔습니다', loss: 7 },
